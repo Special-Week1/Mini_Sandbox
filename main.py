@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 import subprocess
 import uuid
 
+from fastapi.responses import FileResponse
+
+
+import fileoutput
 import fileupload
 
 
@@ -83,8 +87,15 @@ def upload(file: fileupload.UploadFile = fileupload.File(...),
            codex: str = Query(..., min_length=1, max_length=16000)):
     upload_result = fileupload.upload_file(file)
     result = run_in_docker(code=codex, file_binder_args=upload_result["file_binder_args"], timeout_seconds=5)
+    workspace_id = upload_result["workspace_id"]
+    files = fileoutput.get_file_list(workspace_id)
+
     #print(upload_result["file_binder_args"])
-    return result
+    return {
+        "workspace_id": workspace_id,
+        "result": result,
+        "files": files,
+    }
 
 """@app.post("/bind_files")
 def bind_files(request: ExecuteRequest):
@@ -93,6 +104,16 @@ def bind_files(request: ExecuteRequest):
         workspace_id=request.workspace_id,
         timeout_seconds=request.timeout_seconds,
     )"""
+
+@app.get("/download/{workspace_id}/{file_name}")
+def download(workspace_id:str,file_name:str):
+    target=fileoutput.get_output_file(workspace_id, file_name)
+    return FileResponse(
+        path=str(target),
+        filename=file_name,
+        media_type="application/octet-stream",
+    )
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,15 +1,16 @@
-from fastapi import Path,HTTPException
+from pathlib import Path
+from fastapi import HTTPException
 import re
 
 
-WORKSPACES = Path(__file__).resolve().parent / "workspaces"
+WORKSPACES = Path(__file__).resolve().parent / "workspaces"  #找到每个工作目录下/workspace/output此文件绝对路径
 def get_output_dir(workspace_id:str)-> Path:
     output_dir = WORKSPACES / workspace_id / "output"
     if not output_dir.is_dir():
         raise HTTPException(status_code=404, detail="找不到输出目录")
     return output_dir.resolve()
 
-def get_output_file(workspace_id:str, file_name:str) -> Path:  
+def get_output_file(workspace_id:str, file_name:str) -> Path:  #找到每个工作目录下/workspace/output/xxx的路径
     output_dir = get_output_dir(workspace_id)
     target = output_dir / file_name
     if not target.is_file():

@@ -11,7 +11,7 @@ WORKSPACES.mkdir(exist_ok=True)
 def upload_file(file: UploadFile = File(...)) ->dict:
     workspace_id = uuid.uuid4().hex
 
-    input_id = WORKSPACES / workspace_id 
+    input_id = WORKSPACES / workspace_id/"input"
     input_id.mkdir(parents=True,exist_ok=True)
     target_path = input_id / "data.csv"
     try:
@@ -27,8 +27,10 @@ def upload_file(file: UploadFile = File(...)) ->dict:
                         raise HTTPException(status_code=400, detail="文件太大啦不要超过5MB") #鬼知道报错代码是啥啊随便400喽
                     savefile.write(chunk)
     except Exception:
+        
         target_path.unlink(missing_ok=True)
-        input_id.rmdir()
+        input_id.rmdir()         # 删除本次的 input 目录
+        input_id.parent.rmdir()  # 删除本次的 ID 目录
         raise
     finally:
             file.file.close()
