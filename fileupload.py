@@ -24,7 +24,7 @@ def upload_file(file: UploadFile = File(...)) ->dict:
                     
 
                     if total_size >= 5*1024*1024: #判定上传无效，多余部分舍弃
-                        raise HTTPException(status_code=400, detail="文件太大啦不要超过5MB") #鬼知道报错代码是啥啊随便400喽
+                        raise HTTPException(status_code=400, detail="文件太大啦不要超过5MB") #假定400是超量报错
                     savefile.write(chunk)
     except Exception:
         

@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 
 import fileoutput
 import fileupload
+import filebind
 
 
 app = FastAPI()
@@ -16,6 +17,7 @@ app = FastAPI()
 class ExecuteRequest(BaseModel):           #定义传入类
     code: str = Field(min_length=1, max_length=16000)
     timeout_seconds: int= Field(..., ge=1, le=10)
+    workspace_id : str | None = None
 
 
 def run_in_docker(code: str,
@@ -76,11 +78,28 @@ def run_in_docker(code: str,
 
 
 
-@app.post("/execute")                   #拉起fastapi网站
+@app.post("/execute")           #拉起fastapi
 def execute(request: ExecuteRequest):
-    code = request.code
-    result=run_in_docker(code, None, request.timeout_seconds)   #调用docker执行函数
-    return result
+    workspace_id = request.workspace_id
+
+    mount_args = None
+    if workspace_id is not None:
+        mount_args = filebind.file_binder(workspace_id)
+
+    result = run_in_docker(
+        code=request.code,
+        file_binder_args=mount_args,
+        timeout_seconds=request.timeout_seconds,
+    )
+
+    if workspace_id is None:
+        return result
+
+    return {
+        "workspace_id": workspace_id,
+        "result": result,
+        "files": fileoutput.get_file_list(workspace_id),
+    }
 
 @app.post("/upload")                        #拉起文件上传
 def upload(file: fileupload.UploadFile = fileupload.File(...),
@@ -105,13 +124,13 @@ def bind_files(request: ExecuteRequest):
         timeout_seconds=request.timeout_seconds,
     )"""
 
-@app.get("/download/{workspace_id}/{file_name}")
+@app.get("/download/{workspace_id}/{file_name}")  #下载实现
 def download(workspace_id:str,file_name:str):
     target=fileoutput.get_output_file(workspace_id, file_name)
     return FileResponse(
         path=str(target),
         filename=file_name,
-        media_type="application/octet-stream",
+        media_type="application/octet-stream",  #二进制文件格式
     )
 
 
